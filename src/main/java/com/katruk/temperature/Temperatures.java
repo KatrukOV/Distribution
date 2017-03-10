@@ -4,7 +4,7 @@ public interface Temperatures {
 
   float avg();
 
-  Number difference();
+  float difference();
 
   float north();
 

@@ -24,7 +24,7 @@ public final class TemperatureRectangular implements Temperatures {
   }
 
   @Override
-  public Number difference() {
+  public float difference() {
     final float avg = avg();
     final float diff1 = Math.abs(avg - this.temperatureNorth);
     final float diff2 = Math.abs(avg - this.temperatureSouth);

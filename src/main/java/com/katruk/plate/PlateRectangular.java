@@ -7,28 +7,28 @@ import java.util.Arrays;
 
 public final class PlateRectangular implements Plate {
 
-  private final int height;
-  private final int width;
+  private final Temperatures beginTemperature;
   private Temperatures[][] temperatures;
 
-  public PlateRectangular(int height, int width, Temperatures[][] temperatures) {
-    this.height = height;
-    this.width = width;
-    this.temperatures = temperatures;
+  public PlateRectangular(Temperatures temperature, int height, int width) {
+    this.beginTemperature = temperature;
+    this.temperatures = new Temperatures[height][width];
   }
 
   @Override
-  public void calculatedTemperatureDistribution(final float tolerance) {
+  public void calculatedTemperatureDistribution(final float tolerance, final String fileName) {
+    this.temperatures = initTemperatures(this.temperatures, this.beginTemperature);
     System.out.println("begin");
     Temperatures[][] tempArray = this.temperatures.clone();
     System.out.println("diff=" + tempArray[0][0].difference());
 
-    while (tolerance < tempArray[0][0].difference().floatValue()) {
+    while (tolerance < tempArray[0][0].difference()) {
       int n = tempArray.length;
+      int m = tempArray[0].length;
       System.out.println(">> n = " + n);
-      Temperatures[][] newTemperatures = new Temperatures[2 * n][2 * n];
+      Temperatures[][] newTemperatures = new Temperatures[n][m];
       for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
+        for (int j = 0; j < m; j++) {
           System.out.println("i = " + i);
           System.out.println("j = " + j);
           calculate(newTemperatures,
@@ -48,6 +48,21 @@ public final class PlateRectangular implements Plate {
     ;
   }
 
+  private Temperatures[][] initTemperatures(Temperatures[][] temperatures,
+                                            Temperatures beginTemperature) {
+    int height = temperatures.length;
+    int width = temperatures[0].length;
+
+    for (int i = 0; i < height; i++) {
+      for (int j = 0; j < width; j++) {
+        System.out.println("i = " + i);
+        System.out.println("j = " + j);
+        temperatures[i][j] = beginTemperature;
+//        System.out.println(" in loop newTemperatures= " + temperatures[i][i].avg());
+      }
+    }
+    return temperatures;
+  }
 
   private void calculate(final Temperatures[][] newTemperatures,
                          final Temperatures[][] tempArray,
@@ -60,22 +75,22 @@ public final class PlateRectangular implements Plate {
     System.out.println(">> central=" + centralTemperature + " north=" + northTemperature + " south="
                        + southTemperature + " west=" + westTemperature + " east="
                        + eastTemperature);
-    newTemperatures[2 * n][2 * m] = new TemperatureRectangular(northTemperature,
-                                                               centralTemperature,
-                                                               centralTemperature,
-                                                               westTemperature);
-    newTemperatures[2 * n + 1][2 * m] = new TemperatureRectangular(northTemperature,
-                                                                   southTemperature,
-                                                                   centralTemperature,
-                                                                   centralTemperature);
-    newTemperatures[2 * n][2 * m + 1] = new TemperatureRectangular(centralTemperature,
-                                                                   centralTemperature,
-                                                                   eastTemperature,
-                                                                   westTemperature);
-    newTemperatures[2 * n + 1][2 * m + 1] = new TemperatureRectangular(centralTemperature,
-                                                                       southTemperature,
-                                                                       eastTemperature,
-                                                                       centralTemperature);
+    newTemperatures[n][m] = new TemperatureRectangular(northTemperature,
+                                                       centralTemperature,
+                                                       centralTemperature,
+                                                       westTemperature);
+    newTemperatures[n + 1][m] = new TemperatureRectangular(northTemperature,
+                                                           southTemperature,
+                                                           centralTemperature,
+                                                           centralTemperature);
+    newTemperatures[n][m + 1] = new TemperatureRectangular(centralTemperature,
+                                                           centralTemperature,
+                                                           eastTemperature,
+                                                           westTemperature);
+    newTemperatures[n + 1][m + 1] = new TemperatureRectangular(centralTemperature,
+                                                               southTemperature,
+                                                               eastTemperature,
+                                                               centralTemperature);
 //    System.out.println(">> newTemperatures=" + newTemperatures);
 //    System.out.println(">> newTemperatures avg=" + newTemperatures[n][n].avg());
   }
@@ -92,7 +107,7 @@ public final class PlateRectangular implements Plate {
 //        System.out.print(">> s=" + this.temperatures[i][j].south());
 //        System.out.print(">> e=" + this.temperatures[i][j].east());
 //        System.out.print(">> w=" + this.temperatures[i][j].west()+"\n");
-        System.out.print(this.temperatures[i][j].avg() +"   ");
+        System.out.printf("%.2f  ", this.temperatures[i][j].avg());
       }
       System.out.print("\n");
     }
