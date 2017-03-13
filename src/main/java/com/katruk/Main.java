@@ -20,10 +20,13 @@ public final class Main {
 
 //    Temperatures[][] temperatures = new Temperatures[1][1];
 //    temperatures[0][0] = new TemperatureRectangular(0, 100, 100, 100);
-//    Temperatures temperature = new TemperatureRectangular(0, 100, 100, 100);
-    Plate plate = new PlateSimple(20, 20, 0, 50, 70, 100);
-    plate.calculatedTemperatureDistribution(0.5f, "dd");
-    plate.printTemperatures();
+    Temperatures temperature = new TemperatureRectangular(0, 100, 100, 100);
+    Plate plate = new PlateRectangular(temperature, 20, 20);
+    plate.calculatedTemperatureDistribution(20, "dd");
+
+//    Plate plate = new PlateSimple(20, 20, 0, 50, 70, 100);
+//    plate.calculatedTemperatureDistribution(0.5f, "dd");
+//    plate.printTemperatures();
 
   }
 }

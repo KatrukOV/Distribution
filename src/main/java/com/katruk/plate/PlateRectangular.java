@@ -52,14 +52,21 @@ public final class PlateRectangular implements Plate {
                                             Temperatures beginTemperature) {
     int height = temperatures.length;
     int width = temperatures[0].length;
-
+    Temperatures north = new TemperatureRectangular(beginTemperature.north(), 0, 0, 0);
+    Temperatures east = new TemperatureRectangular(0, beginTemperature.east(), 0, 0);
+    Temperatures south = new TemperatureRectangular(0, 0, beginTemperature.south(), 0);
+    Temperatures west = new TemperatureRectangular(0, 0, 0, beginTemperature.west());
+    for (int j = 0; j < width; j++) {
+      temperatures[0][j] = north;
+    }
     for (int i = 0; i < height; i++) {
-      for (int j = 0; j < width; j++) {
-        System.out.println("i = " + i);
-        System.out.println("j = " + j);
-        temperatures[i][j] = beginTemperature;
-//        System.out.println(" in loop newTemperatures= " + temperatures[i][i].avg());
-      }
+      temperatures[i][width - 1] = east;
+    }
+    for (int j = 0; j < width; j++) {
+      temperatures[height - 1][j] = south;
+    }
+    for (int i = 0; i < height; i++) {
+      temperatures[i][0] = west;
     }
     return temperatures;
   }
