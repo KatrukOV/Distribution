@@ -18,34 +18,35 @@ public final class PlateRectangular implements Plate {
   @Override
   public void calculatedTemperatureDistribution(final float tolerance, final String fileName) {
     this.temperatures = initTemperatures(this.temperatures, this.beginTemperature);
-    System.out.println("begin");
+//    System.out.println("begin");
     Temperatures[][] tempArray = this.temperatures.clone();
-    System.out.println("diff=" + tempArray[0][0].difference());
-
-    while (tolerance < tempArray[0][0].difference()) {
+//    System.out.println("diff=" + tempArray[0][0].difference());
+    float difference;
+    do {
       int n = tempArray.length;
       int m = tempArray[0].length;
-      System.out.println(">> n = " + n);
-      Temperatures[][] newTemperatures = new Temperatures[n][m];
-      for (int i = 0; i < n; i++) {
-        for (int j = 0; j < m; j++) {
-          System.out.println("i = " + i);
-          System.out.println("j = " + j);
-          calculate(newTemperatures,
-                    tempArray,
-                    i, j);
-          System.out.println(" in loop newTemperatures= " + newTemperatures[i][i].avg());
+      Temperatures[][] newTemperatures = copyTemperatures(tempArray, n, m);
+
+      for (int i = 1; i < n - 1; i++) {
+        for (int j = 1; j < m - 1; j++) {
+          float value = (tempArray[i - 1][j].avg() + tempArray[i + 1][j].avg()
+                         + tempArray[i][j - 1].avg() + tempArray[i][j + 1].avg()) / 4.0f;
+
+          newTemperatures[i][j] = new TemperatureRectangular(value, value, value, value);
         }
       }
-      System.out.println(" before tempArray " + Arrays.deepToString(newTemperatures));
+      difference = newTemperatures[1][1].avg() - tempArray[1][1].avg();
       tempArray = newTemperatures;
-      int n1 = tempArray.length;
-      System.out.println(">> n1 = " + n1);
-      System.out.println(" after tempArray" + Arrays.deepToString(newTemperatures));
-      System.out.println("diff=" + tempArray[0][0].difference());
+    } while (tolerance < difference);
+    this.temperatures = tempArray;
+  }
+
+  private Temperatures[][] copyTemperatures(Temperatures[][] tempArray, int n, int m) {
+    Temperatures[][] newTemperatures = new Temperatures[n][m];
+    for (int i = 0; i < n; i++) {
+      System.arraycopy(tempArray[i], 0, newTemperatures[i], 0, m);
     }
-    this.temperatures = tempArray//.clone()
-    ;
+    return newTemperatures;
   }
 
   private Temperatures[][] initTemperatures(Temperatures[][] temperatures,
@@ -67,6 +68,11 @@ public final class PlateRectangular implements Plate {
     }
     for (int i = 0; i < height; i++) {
       temperatures[i][0] = west;
+    }
+    for (int i = 1; i < height - 1; i++) {
+      for (int j = 1; j < width - 1; j++) {
+        temperatures[i][j] = new TemperatureRectangular(0, 0, 0, 0);
+      }
     }
     return temperatures;
   }
@@ -102,7 +108,6 @@ public final class PlateRectangular implements Plate {
 //    System.out.println(">> newTemperatures avg=" + newTemperatures[n][n].avg());
   }
 
-
   @Override
   public void printTemperatures() {
     int n = this.temperatures.length;
@@ -120,48 +125,8 @@ public final class PlateRectangular implements Plate {
     }
   }
 
-}
+  @Override
+  public void showTemperatures(String fileName) {
 
-
-/*
-  Temperatures[][] tempArray = this.temperatures;
-
-    while (tolerance > tempArray[0][0].difference().floatValue()) {
-        int n = tempArray.length;
-        tempArray = new Temperatures[2 * n][2 * n];
-
-        calculate(tempArray,
-//              0, this.temperatures.length,
-//              0, this.temperatures[0].length,
-        tolerance);
-
-        }
-
-        this.temperatures = tempArray;
-        }
-
-private void calculate(final Temperatures[][] temperatures,
-//                         final int startN, final int endN,
-//                         final int startM, final int endM,
-final float tolerance
-    ) {
-//    if (tolerance > temperatures[0][0].difference().floatValue()) {
-//      return;
-//    }
-    float centralTemperature = temperatures[0][0].avg();
-//    int midN = startN + (endN - startN)/2;
-//    int midM = startM + (endM - startM)/2;
-    int n = temperatures.length;
-//    int m = temperatures[0].length;
-    Temperatures[][] newTemperatures = new Temperatures[2 * n][2 * n];
-    for (int i = 0; i < n; i++) {
-    for (int j = 0; i < n; i++) {
-    newTemperatures[i][j] = new TemperatureRectangular(temperatures[0][0].north(),
-    temperatures[0][0].avg(),
-    temperatures[0][0].avg(),
-    temperatures[0][0].west());
-    }
   }
 }
-
-*/

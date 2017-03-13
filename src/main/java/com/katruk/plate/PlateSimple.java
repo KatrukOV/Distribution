@@ -1,5 +1,12 @@
 package com.katruk.plate;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.katruk.temperature.Temperatures;
+
+import java.io.File;
+import java.io.IOException;
+
 public final class PlateSimple implements Plate {
 
   private final float north;
@@ -7,7 +14,6 @@ public final class PlateSimple implements Plate {
   private final float east;
   private final float west;
   private float[][] temperatures;
-  private int count = 0;
 
   public PlateSimple(int height, int width, float north, float east, float south, float west) {
     this.north = north;
@@ -23,21 +29,35 @@ public final class PlateSimple implements Plate {
         initTemperatures(this.temperatures, this.north, this.east, this.south, this.west);
     float[][] tempArray = this.temperatures.clone();
     float difference;
+    int n = tempArray.length;
+    int m = tempArray[0].length;
     do {
-      int n = tempArray.length;
-      int m = tempArray[0].length;
       float[][] newTemperatures = copyTemperatures(tempArray, n, m);
-      for (int i = 1; i < n - 1; i++) {
-        for (int j = 1; j < m - 1; j++) {
-          newTemperatures[i][j] = (tempArray[i - 1][j] + tempArray[i + 1][j]
-                                   + tempArray[i][j - 1] + tempArray[i][j + 1]) / 4.0f;
-        }
-      }
+      calculate(tempArray, n, m, newTemperatures);
       difference = newTemperatures[1][1] - tempArray[1][1];
       tempArray = newTemperatures;
-      count++;
     } while (tolerance < difference);
+    saveToFile(tempArray, fileName);
     this.temperatures = tempArray;
+  }
+
+  private void saveToFile(float[][] temperatures, String fileName) {
+    File jsonFile = new File(fileName);
+    ObjectMapper objectMapper = new ObjectMapper();
+    try {
+      objectMapper.writeValue(jsonFile, temperatures);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void calculate(float[][] tempArray, int n, int m, float[][] newTemperatures) {
+    for (int i = 1; i < n - 1; i++) {
+      for (int j = 1; j < m - 1; j++) {
+        newTemperatures[i][j] = (tempArray[i - 1][j] + tempArray[i + 1][j]
+                                 + tempArray[i][j - 1] + tempArray[i][j + 1]) / 4.0f;
+      }
+    }
   }
 
   private float[][] copyTemperatures(float[][] tempArray, int n, int m) {
@@ -52,7 +72,6 @@ public final class PlateSimple implements Plate {
                                      final float east, final float south, final float west) {
     int height = temperatures.length;
     int width = temperatures[0].length;
-
     for (int j = 0; j < width; j++) {
       temperatures[0][j] = north;
     }
@@ -78,4 +97,31 @@ public final class PlateSimple implements Plate {
       System.out.print("\n");
     }
   }
+
+  @Override
+  public void showTemperatures(String fileName) {
+    float[][] temperatures = readFromFile(fileName);
+
+    makePicture();
+//    printTemperatures();
+
+  }
+
+  private void makePicture() {
+
+  }
+
+  private float[][] readFromFile(String fileName) {
+    File jsonFile = new File(fileName);
+    ObjectMapper objectMapper = new ObjectMapper();
+    float[][] result = new float[0][];
+    try {
+      result = objectMapper.readValue(jsonFile, new TypeReference<float[][]>() {
+      });
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return result;
+  }
+
 }
