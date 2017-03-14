@@ -126,7 +126,9 @@ public final class PlateRectangular implements Plate {
   }
 
   @Override
-  public void showTemperatures(String fileName) {
+  public void imageTemperatures(String fileName, Color color) {
 
   }
+
+
 }

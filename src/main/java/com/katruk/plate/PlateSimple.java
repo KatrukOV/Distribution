@@ -1,11 +1,12 @@
 package com.katruk.plate;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.katruk.temperature.Temperatures;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+
+import javax.imageio.ImageIO;
 
 public final class PlateSimple implements Plate {
 
@@ -99,29 +100,75 @@ public final class PlateSimple implements Plate {
   }
 
   @Override
-  public void showTemperatures(String fileName) {
-    float[][] temperatures = readFromFile(fileName);
-
-    makePicture();
-//    printTemperatures();
-
-  }
-
-  private void makePicture() {
-
-  }
-
-  private float[][] readFromFile(String fileName) {
-    File jsonFile = new File(fileName);
-    ObjectMapper objectMapper = new ObjectMapper();
-    float[][] result = new float[0][];
+  public void imageTemperatures(final String fileName, final Color color) {
+    final float[][] temperatures = this.temperatures;
+    BufferedImage image = makeImage(temperatures, color);
+    File file = new File(fileName);
     try {
-      result = objectMapper.readValue(jsonFile, new TypeReference<float[][]>() {
-      });
+      ImageIO.write(image, "png", file);
     } catch (IOException e) {
       e.printStackTrace();
+    }
+  }
+
+  private BufferedImage makeImage(float[][] temperatures, final Color color) {
+    int height = temperatures.length;
+    int width = temperatures[0].length;
+    BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+    int a = 255;
+    int red = 0;
+    int green = 0;
+    int blue = 0;
+    float max = getMax(temperatures);
+    float min = getMin(temperatures);
+    for (int x = 0; x < width; x++) {
+      for (int y = 0; y < height; y++) {
+        switch (color) {
+          case RED:
+            red = normalize(temperatures[y][x], max, min);
+            break;
+          case GREEN:
+            green = normalize(temperatures[y][x], max, min);
+            break;
+          case BLUE:
+            blue = normalize(temperatures[y][x], max, min);
+            break;
+        }
+        int pixel = (a << 24) | (red << 16) | (green << 8) | blue;
+        image.setRGB(x, y, pixel);
+      }
+    }
+    return image;
+  }
+
+  private int normalize(float value, float max, float min) {
+    final int absoluteMax = 255;
+    return (int) (((value - min) * absoluteMax) / (max - min));
+  }
+
+  private float getMin(float[][] temperatures) {
+    float result = temperatures[0][0];
+    int width = temperatures[0].length;
+    for (float[] temperature : temperatures) {
+      for (int j = 0; j < width; j++) {
+        if (result > temperature[j]) {
+          result = temperature[j];
+        }
+      }
     }
     return result;
   }
 
+  private float getMax(float[][] temperatures) {
+    float result = temperatures[0][0];
+    int width = temperatures[0].length;
+    for (float[] temperature : temperatures) {
+      for (int j = 0; j < width; j++) {
+        if (result < temperature[j]) {
+          result = temperature[j];
+        }
+      }
+    }
+    return result;
+  }
 }

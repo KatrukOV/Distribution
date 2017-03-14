@@ -6,5 +6,11 @@ public interface Plate {
 
   void printTemperatures();
 
-  void showTemperatures(final String fileName);
+  void imageTemperatures(final String fileName, final Color color);
+
+  enum Color {
+    RED,
+    GREEN,
+    BLUE
+  }
 }
