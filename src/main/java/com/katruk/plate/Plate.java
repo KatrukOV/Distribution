@@ -2,15 +2,15 @@ package com.katruk.plate;
 
 public interface Plate {
 
-  void calculatedTemperatureDistribution(final float tolerance, final String fileName);
+    void calculatedTemperatureDistribution(final float tolerance, final String fileName);
 
-  void printTemperatures();
+    void printTemperatures();
 
-  void imageTemperatures(final String fileName, final Color color);
+    void imageTemperatures(final String fileName, final Color color);
 
-  enum Color {
-    RED,
-    GREEN,
-    BLUE
-  }
+    enum Color {
+        RED,
+        GREEN,
+        BLUE
+    }
 }

@@ -2,16 +2,16 @@ package com.katruk.temperature;
 
 public interface Temperatures {
 
-  float avg();
+    float avg();
 
-  float difference();
+    float difference();
 
-  float north();
+    float north();
 
-  float south();
+    float south();
 
-  float east();
+    float east();
 
-  float west();
+    float west();
 
 }
