@@ -1,26 +1,39 @@
 package com.katruk;
 
 import com.katruk.plate.Plate;
+import com.katruk.plate.PlateParallel;
 import com.katruk.plate.PlateSimple;
+import com.katruk.util.CompareUtil;
 
 public final class Main {
 
     public static void main(String[] args) {
+        int height = 20;
+        int width = 30;
+        float tolerance = 0.0005f;
+        float north = 0;
+        float east = 100;
+        float south = 100;
+        float west = 100;
 
-//    Temperatures temperature = new TemperatureRectangular(0, 100, 100, 100);
-//    Plate plate = new PlateRectangular(temperature, 20, 20);
-//    plate.calculatedTemperatureDistribution(0.05f, "dd");
-//    plate.calculatedTemperatureDistribution(20, "dd");
-//    plate.printTemperatures();
+        System.out.println("Starting single processor run...");
+        PlateSimple plateSingle = new PlateSimple(height, width, north, east, south, west);
+        plateSingle.calculatedTemperatureDistribution(tolerance, "Temperatures_Single.json");
+        plateSingle.imageTemperatures("Temperatures_Single.png", Plate.Color.GREEN);
+        System.out.println("Single processor run finished.");
 
-        String fileNameArray = "Temperatures.json";
-        String fileNameImage = "Temperatures.png";
-        Plate plate = new PlateSimple(20, 30, 0, 70, 100, 500);
-        plate.calculatedTemperatureDistribution(.0005f, fileNameArray);
-        plate.printTemperatures();
+        System.out.println("Starting four-processor run...");
+        PlateParallel plateParallel = new PlateParallel(height, width, north, east, south, west);
+        plateParallel.calculatedTemperatureDistribution(tolerance, "Temperatures_Parallel.json");
+        plateParallel.imageTemperatures("Temperatures_Parallel.png", Plate.Color.BLUE);
+        System.out.println("Four-processor run finished.");
 
-        plate.imageTemperatures(fileNameImage, Plate.Color.GREEN);
+        double stdDev = CompareUtil.calculateStdDevOfDifferences(
+                plateSingle.getTemperatures(),
+                plateParallel.getTemperatures()
+        );
 
+        System.out.printf("Standard deviation of differences: %.10f\n", stdDev);
     }
 
 }

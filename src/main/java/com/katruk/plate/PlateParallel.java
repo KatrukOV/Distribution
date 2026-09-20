@@ -6,16 +6,19 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 
-public final class PlateSimple implements Plate {
+public final class PlateParallel implements Plate {
 
     private final float north;
     private final float south;
     private final float east;
     private final float west;
     private float[][] temperatures;
+    private final int numProcessors = 4;
 
-    public PlateSimple(int height, int width, float north, float east, float south, float west) {
+    public PlateParallel(int height, int width, float north, float east, float south, float west) {
         this.north = north;
         this.south = south;
         this.east = east;
@@ -26,58 +29,77 @@ public final class PlateSimple implements Plate {
     @Override
     public void calculatedTemperatureDistribution(final float tolerance, final String fileName) {
         this.temperatures = initTemperatures(this.temperatures, this.north, this.east, this.south, this.west);
-        float[][] tempArray = this.temperatures.clone();
-        float maxDifference;
-        int n = tempArray.length;
-        int m = tempArray[0].length;
-        do {
-            float[][] newTemperatures = copyTemperatures(tempArray, n, m);
-            calculate(tempArray, n, m, newTemperatures);
-            maxDifference = getMaxDifference(tempArray, newTemperatures, n, m);
-            tempArray = newTemperatures;
-        } while (tolerance < maxDifference);
-        saveToFile(tempArray, fileName);
-        this.temperatures = tempArray;
-    }
+        int n = this.temperatures.length;
+        int m = this.temperatures[0].length;
 
-    private float getMaxDifference(float[][] oldTemp, float[][] newTemp, int n, int m) {
-        float maxDiff = 0;
-        for (int i = 1; i < n - 1; i++) {
-            for (int j = 1; j < m - 1; j++) {
-                float diff = Math.abs(newTemp[i][j] - oldTemp[i][j]);
-                if (diff > maxDiff) {
-                    maxDiff = diff;
+        float[][][] grids = new float[2][n][m];
+        grids[0] = copyTemperatures(this.temperatures, n, m);
+        grids[1] = copyTemperatures(this.temperatures, n, m);
+
+        float[] localMaxDiffs = new float[numProcessors];
+        final boolean[] converged = {false};
+        final int[] currentIdx = {0};
+
+        CyclicBarrier barrier = new CyclicBarrier(numProcessors, () -> {
+            float maxDiff = 0;
+            for (float d : localMaxDiffs) {
+                if (d > maxDiff) {
+                    maxDiff = d;
                 }
             }
-        }
-        return maxDiff;
-    }
+            if (maxDiff < tolerance) {
+                converged[0] = true;
+            }
+            currentIdx[0] = 1 - currentIdx[0];
+        });
 
-    private void saveToFile(float[][] temperatures, String fileName) {
-        File jsonFile = new File(fileName);
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            objectMapper.writeValue(jsonFile, temperatures);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+        Thread[] threads = new Thread[numProcessors];
+        for (int i = 0; i < numProcessors; i++) {
+            final int id = i;
+            threads[i] = new Thread(() -> {
+                int interiorHeight = n - 2;
+                int rowsPerThread = interiorHeight / numProcessors;
+                int startRow = 1 + id * rowsPerThread;
+                int endRow = (id == numProcessors - 1) ? n - 1 : 1 + (id + 1) * rowsPerThread;
 
-    private void calculate(float[][] tempArray, int n, int m, float[][] newTemperatures) {
-        for (int i = 1; i < n - 1; i++) {
-            for (int j = 1; j < m - 1; j++) {
-                newTemperatures[i][j] = (tempArray[i - 1][j] + tempArray[i + 1][j]
-                        + tempArray[i][j - 1] + tempArray[i][j + 1]) / 4.0f;
+                while (!converged[0]) {
+                    int oldIdx = currentIdx[0];
+                    int newIdx = 1 - oldIdx;
+                    float localMax = 0;
+
+                    for (int r = startRow; r < endRow; r++) {
+                        for (int c = 1; c < m - 1; c++) {
+                            grids[newIdx][r][c] = (grids[oldIdx][r - 1][c] + grids[oldIdx][r + 1][c]
+                                    + grids[oldIdx][r][c - 1] + grids[oldIdx][r][c + 1]) / 4.0f;
+                            float diff = Math.abs(grids[newIdx][r][c] - grids[oldIdx][r][c]);
+                            if (diff > localMax) {
+                                localMax = diff;
+                            }
+                        }
+                    }
+                    localMaxDiffs[id] = localMax;
+
+                    try {
+                        barrier.await();
+                    } catch (InterruptedException | BrokenBarrierException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+            });
+            threads[i].start();
+        }
+
+        for (Thread t : threads) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
-    }
 
-    private float[][] copyTemperatures(float[][] tempArray, int n, int m) {
-        float[][] newTemperatures = new float[n][m];
-        for (int i = 0; i < n; i++) {
-            System.arraycopy(tempArray[i], 0, newTemperatures[i], 0, m);
-        }
-        return newTemperatures;
+        this.temperatures = grids[currentIdx[0]];
+        saveToFile(this.temperatures, fileName);
     }
 
     private float[][] initTemperatures(final float[][] temperatures, final float north,
@@ -99,6 +121,24 @@ public final class PlateSimple implements Plate {
         return temperatures;
     }
 
+    private float[][] copyTemperatures(float[][] tempArray, int n, int m) {
+        float[][] newTemperatures = new float[n][m];
+        for (int i = 0; i < n; i++) {
+            System.arraycopy(tempArray[i], 0, newTemperatures[i], 0, m);
+        }
+        return newTemperatures;
+    }
+
+    private void saveToFile(float[][] temperatures, String fileName) {
+        File jsonFile = new File(fileName);
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            objectMapper.writeValue(jsonFile, temperatures);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void printTemperatures() {
         int m = this.temperatures[0].length;
@@ -112,8 +152,7 @@ public final class PlateSimple implements Plate {
 
     @Override
     public void imageTemperatures(final String fileName, final Color color) {
-        final float[][] temperatures = this.temperatures;
-        BufferedImage image = makeImage(temperatures, color);
+        BufferedImage image = makeImage(this.temperatures, color);
         File file = new File(fileName);
         try {
             ImageIO.write(image, "png", file);
@@ -153,6 +192,7 @@ public final class PlateSimple implements Plate {
     }
 
     private int normalize(float value, float max, float min) {
+        if (max == min) return 0;
         final int absoluteMax = 255;
         return (int) (((value - min) * absoluteMax) / (max - min));
     }
@@ -186,5 +226,4 @@ public final class PlateSimple implements Plate {
     public float[][] getTemperatures() {
         return temperatures;
     }
-
 }

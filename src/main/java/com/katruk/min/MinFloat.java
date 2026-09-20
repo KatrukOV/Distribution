@@ -1,10 +1,11 @@
 package com.katruk.min;
 
+import java.util.SortedSet;
 import java.util.TreeSet;
 
 public final class MinFloat implements Min {
 
-    private final TreeSet<Float> numbers = new TreeSet<>();
+    private final SortedSet<Float> numbers = new TreeSet<>();
 
     public MinFloat of(float value) {
         this.numbers.add(value);
